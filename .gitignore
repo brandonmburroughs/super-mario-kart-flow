@@ -1,0 +1,6 @@
+# PyCharm
+.idea
+
+# Large files
+data
+model
