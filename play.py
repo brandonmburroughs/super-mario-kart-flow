@@ -54,10 +54,10 @@ class Predictor(object):
         """Start a tensorflow session and load the model."""
         self.sess = tf.InteractiveSession()
 
-        self.weights1 = tf.Variable(tf.truncated_normal([image_width * image_height, num_hidden_nodes]), name="weights1")
-        self.biases1 = tf.Variable(tf.zeros([num_hidden_nodes]), name="biases1")
-        self.weights2 = tf.Variable(tf.truncated_normal([num_hidden_nodes, num_labels]), name="weights2")
-        self.biases2 = tf.Variable(tf.zeros([num_labels]), name="biases2")
+        self.weights1 = tf.Variable(tf.truncated_normal([image_width * image_height, num_hidden_nodes]), name="weights_1")
+        self.biases1 = tf.Variable(tf.zeros([num_hidden_nodes]), name="biases_1")
+        self.weights2 = tf.Variable(tf.truncated_normal([num_hidden_nodes, num_labels]), name="weights_2")
+        self.biases2 = tf.Variable(tf.zeros([num_labels]), name="biases_2")
 
         self.sess.run(tf.global_variables_initializer())
 
@@ -152,14 +152,17 @@ class KeyManager(object):
                 key = self.key_mapping[self.stop_go]
                 self.ui.write(e.EV_KEY, key, 0)
                 self.ui.syn()
+                #sleep(0.1)
+                #self.ui.write(e.EV_KEY, key, 1)
+                #self.ui.syn()
                 self.stop_go = "stop"
 
         sys.stdout.write("Direction: {}    Stop/Go: {}\r".format(self.current_direction[0], self.stop_go[0]))
         sys.stdout.flush()
-        sleep(0.5)
+        sleep(0.1)
 
 def play(trained_model_path):
-    """Play Super Mario Kart.
+    """Play Super Mario Kart.ert
 
     Parameters
     ----------

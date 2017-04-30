@@ -29,25 +29,37 @@ def load_images(folder):
     ndarray, ndarray
         The images and corresponding labels arrays
     """
+    label_names = [
+        'Absolute_ABS_HAT0X_-1.png',
+        'Absolute_ABS_HAT0X_0.png',
+        'Absolute_ABS_HAT0X_1.png',
+        'Key_BTN_SOUTH_0.png',
+        'Key_BTN_SOUTH_1.png'
+    ]
     image_files = os.listdir(folder)
     dataset = np.ndarray(shape=(len(image_files), image_height, image_width),
                          dtype=np.float32)
     labels = np.ndarray(shape=(len(image_files)), dtype=object)
     num_images = 0
+    num_bad_labels = 0
     for image in image_files:
-        image_file = os.path.join(folder, image)
-        try:
-            image_data = (ndimage.imread(image_file).mean(axis=2).astype(float) -
-                          pixel_depth / 2) / pixel_depth
-            if image_data.shape != (image_height, image_width):
-                raise Exception('Unexpected image shape: %s' % str(image_data.shape))
-            dataset[num_images, :, :] = image_data
-            labels[num_images] = image.split("_", 2)[-1]
-            num_images += 1
-        except IOError as e:
-            print('Could not read:', image_file, ':', e, '- it\'s ok, skipping.')
+        if image.split("_", 2)[-1] in label_names:
+            image_file = os.path.join(folder, image)
+            try:
+                image_data = (ndimage.imread(image_file).mean(axis=2).astype(float) -
+                              pixel_depth / 2) / pixel_depth
+                if image_data.shape != (image_height, image_width):
+                    raise Exception('Unexpected image shape: %s' % str(image_data.shape))
+                dataset[num_images, :, :] = image_data
+                labels[num_images] = image.split("_", 2)[-1]
+                num_images += 1
+            except IOError as e:
+                print('Could not read:', image_file, ':', e, '- it\'s ok, skipping.')
+        else:
+            num_bad_labels += 1
 
-    dataset = dataset[0:num_images, :, :]
+    dataset = dataset[0:(num_images - num_bad_labels), :, :]
+    labels = labels[0:(num_images - num_bad_labels)]
 
     print('Full dataset tensor:', dataset.shape)
     print('Mean:', np.mean(dataset))
@@ -298,7 +310,7 @@ with graph.as_default():
     loss = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(logits, tf_train_labels))
 
     # Optimizer
-    optimizer = tf.train.GradientDescentOptimizer(0.5).minimize(loss)
+    optimizer = tf.train.AdamOptimizer(1e-4).minimize(loss)
 
     # Predictions for the training, validation, and test data
     train_prediction = tf.nn.softmax(logits)
@@ -313,7 +325,7 @@ with graph.as_default():
                                                     fcl_weights, fcl_biases)
     test_prediction = tf.nn.softmax(test_logits)
 
-num_steps = 3001
+num_steps = int(30 * training_idx.shape[0] / batch_size)
 
 with tf.Session(graph=graph) as session:
     tf.global_variables_initializer().run()
@@ -331,7 +343,7 @@ with tf.Session(graph=graph) as session:
         feed_dict = {tf_train_dataset : batch_data, tf_train_labels : batch_labels}
         _, l, predictions = session.run(
             [optimizer, loss, train_prediction], feed_dict=feed_dict)
-        if step % 500 == 0:
+        if step % 100 == 0:
             print("Minibatch loss at step %d: %f" % (step, l))
             print("Minibatch accuracy: %.1f%%" % accuracy(predictions, batch_labels))
             print("Validation accuracy: %.1f%%" % accuracy(
